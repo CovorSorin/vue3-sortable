@@ -278,7 +278,10 @@ function autosScroll() {
     return
   }
 
-  const dragDelta = currentDragPosition.y - initialDragPosition.y
+  const dragDelta = isVertical.value
+    ? currentDragPosition.y - initialDragPosition.y
+    : currentDragPosition.x - initialDragPosition.x
+
   const dragDirection = dragDelta > 0 ? 1 : -1
 
   if (Math.abs(dragDelta) < 5 || dragDirection != direction) {
