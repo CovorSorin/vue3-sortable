@@ -13,6 +13,7 @@
         :class="itemClass"
         @mousedown="onDragStart($event, index)"
         @touchstart="onDragStart($event, index)"
+        @click.capture="handleClick($event)"
       >
         <slot
           name="item"
@@ -66,6 +67,10 @@ const props = defineProps({
   itemKey: {
     type: Function,
     default: (item, index) => `index-${index}`
+  },
+  dragThreshold: {
+    type: Number,
+    default: 3 // pixels - below this is considered a click, not a drag
   }
 })
 
@@ -93,6 +98,9 @@ const position = ref({
 })
 
 const isDragging = ref(false)
+const wasDragging = ref(false)
+const dragStartPosition = ref(null)
+const dragDistance = ref(0)
 
 const initialIndex = ref(null)
 const scrollIndex = ref(null)
@@ -104,6 +112,18 @@ let animationRequest = null
 // Relative to the viewport.
 let initialDragPosition = null
 let currentDragPosition = null
+
+function handleClick(event) {
+  console.log('handleClick')
+  // If we were dragging, prevent the click from propagating to nested elements
+  if (wasDragging.value) {
+    console.log('prevent')
+    event.preventDefault()
+    event.stopPropagation()
+    // Reset the flag after handling the event
+    wasDragging.value = false
+  }
+}
 
 function onWheel(event) {
   if (isDragging.value) {
@@ -163,6 +183,11 @@ function onDragStart(event, index) {
 
   event.preventDefault()
 
+  // Record initial position for drag distance calculation
+  dragStartPosition.value = getEventPosition(event)
+  dragDistance.value = 0
+  wasDragging.value = false
+
   document.addEventListener('mousemove', onDrag)
   document.addEventListener('mouseup', onDragStop)
 
@@ -192,7 +217,21 @@ function onDragStart(event, index) {
 }
 
 function onDrag(event) {
-  currentDragPosition = getEventPosition(event)
+  const currentPosition = getEventPosition(event)
+
+  // Calculate drag distance
+  if (dragStartPosition.value) {
+    const dx = currentPosition.x - dragStartPosition.value.x
+    const dy = currentPosition.y - dragStartPosition.value.y
+    dragDistance.value = Math.sqrt(dx * dx + dy * dy)
+
+    // If we've moved more than the threshold, consider it a drag
+    if (dragDistance.value > props.dragThreshold) {
+      wasDragging.value = true
+    }
+  }
+
+  currentDragPosition = currentPosition
   const { x, y } = getRelativeEventPosition(event, sortableRef.value)
   const size = isVertical.value ? target.offsetHeight : target.offsetWidth
   const padding = size / 2
@@ -235,6 +274,7 @@ function onDragStop() {
   isDragging.value = false
   initialIndex.value = null
   scrollIndex.value = null
+  // Note: wasDragging is not reset here - it will be reset after click is handled
 }
 
 function moveTarget() {
