@@ -98,7 +98,6 @@ const position = ref({
 })
 
 const isDragging = ref(false)
-const wasDragging = ref(false)
 
 const initialIndex = ref(null)
 const scrollIndex = ref(null)
@@ -112,15 +111,14 @@ let initialDragPosition = null
 let currentDragPosition = null
 
 function onItemClick(event) {
-  console.log('onItemClick')
-  // If we were dragging, prevent the click from propagating to nested elements
-  if (wasDragging.value) {
-    console.log('prevent')
-    event.preventDefault()
-    event.stopPropagation()
-    // Reset the flag after handling the event
-    wasDragging.value = false
+  console.log('onItemClick', isDragging.value)
+  if (!isDragging.value) {
+    return
   }
+  console.log('prevent onItemClick')
+  event.preventDefault()
+  event.stopPropagation()
+  isDragging.value = false
 }
 
 function onWheel(event) {
@@ -150,7 +148,7 @@ function getStyle(index) {
     transform: 'translate3d(0, 0, 0)'
   }
 
-  if (isBetween(index, initialIndex.value, scrollIndex.value)) {
+  if (isDragging.value && isBetween(index, initialIndex.value, scrollIndex.value)) {
     const transform = (initialIndex.value - scrollIndex.value < 0) ? '-100%' : '100%'
     const transformX = isVertical.value ? 0 : transform
     const transformY = isVertical.value ? transform : 0
@@ -182,9 +180,6 @@ function onDragStart(event, index) {
   const isTouchEvent = event.type == 'touchstart'
   console.log('isTouchEvent', isTouchEvent)
 
-  // Record initial position for drag distance calculation
-  wasDragging.value = false
-
   if (isTouchEvent) {
     document.addEventListener('touchmove', onDrag, { passive: false })
     document.addEventListener('touchend', onDragStop)
@@ -195,7 +190,7 @@ function onDragStart(event, index) {
     document.addEventListener('mouseup', onDragStop)
   }
 
-  isDragging.value = true
+  isDragging.value = false
   initialIndex.value = index
 
   sortableHeight.value = sortableRef.value.scrollHeight
@@ -224,15 +219,23 @@ function onDrag(event) {
     event.preventDefault()
   }
 
-  const dx = initialDragPosition.x - currentDragPosition.x
-  const dy = initialDragPosition.y - currentDragPosition.y
-  const delta = Math.sqrt(dx * dx + dy * dy)
+  const delta = isVertical.value
+    ? currentDragPosition.y - initialDragPosition.y
+    : currentDragPosition.x - initialDragPosition.x
 
-  console.log('delta', delta)
-  if (delta > props.dragThreshold) {
-    wasDragging.value = true
+  // console.log('delta',delta, currentDragPosition.y , initialDragPosition.y)
+  // const dx = initialDragPosition.x - currentDragPosition.x
+  // const dy = initialDragPosition.y - currentDragPosition.y
+  // const delta = Math.sqrt(dx * dx + dy * dy)
+
+  // console.log('delta', delta)
+  if (Math.abs(delta) > props.dragThreshold) {
+    isDragging.value = true
   }
-
+  if (!isDragging.value) {
+    console.log('jussst ocne')
+    // console.log(delta > props.dragThreshold, delta, props.dragThreshold)
+  }
   const { x, y } = getRelativeEventPosition(event, sortableRef.value)
   const size = isVertical.value ? target.offsetHeight : target.offsetWidth
   const padding = size / 2
