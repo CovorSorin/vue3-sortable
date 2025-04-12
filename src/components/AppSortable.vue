@@ -99,8 +99,6 @@ const position = ref({
 
 const isDragging = ref(false)
 const wasDragging = ref(false)
-const dragStartPosition = ref(null)
-const dragDistance = ref(0)
 
 const initialIndex = ref(null)
 const scrollIndex = ref(null)
@@ -185,8 +183,6 @@ function onDragStart(event, index) {
   console.log('isTouchEvent', isTouchEvent)
 
   // Record initial position for drag distance calculation
-  dragStartPosition.value = getEventPosition(event)
-  dragDistance.value = 0
   wasDragging.value = false
 
   if (isTouchEvent) {
@@ -222,25 +218,21 @@ function onDragStart(event, index) {
 }
 
 function onDrag(event) {
-  const currentPosition = getEventPosition(event)
+  currentDragPosition = getEventPosition(event)
 
   if (event.type === 'touchmove') {
     event.preventDefault()
   }
 
-  // Calculate drag distance
-  if (dragStartPosition.value) {
-    const dx = currentPosition.x - dragStartPosition.value.x
-    const dy = currentPosition.y - dragStartPosition.value.y
-    dragDistance.value = Math.sqrt(dx * dx + dy * dy)
+  const dx = initialDragPosition.x - currentDragPosition.x
+  const dy = initialDragPosition.y - currentDragPosition.y
+  const delta = Math.sqrt(dx * dx + dy * dy)
 
-    // If we've moved more than the threshold, consider it a drag
-    if (dragDistance.value > props.dragThreshold) {
-      wasDragging.value = true
-    }
+  console.log('delta', delta)
+  if (delta > props.dragThreshold) {
+    wasDragging.value = true
   }
 
-  currentDragPosition = currentPosition
   const { x, y } = getRelativeEventPosition(event, sortableRef.value)
   const size = isVertical.value ? target.offsetHeight : target.offsetWidth
   const padding = size / 2
