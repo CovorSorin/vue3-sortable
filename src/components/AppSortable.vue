@@ -13,7 +13,7 @@
         :class="itemClass"
         @mousedown="onDragStart($event, index)"
         @touchstart="onDragStart($event, index)"
-        @click.capture="handleClick($event)"
+        @click.capture="onItemClick($event)"
       >
         <slot
           name="item"
@@ -113,8 +113,8 @@ let animationRequest = null
 let initialDragPosition = null
 let currentDragPosition = null
 
-function handleClick(event) {
-  console.log('handleClick')
+function onItemClick(event) {
+  console.log('onItemClick')
   // If we were dragging, prevent the click from propagating to nested elements
   if (wasDragging.value) {
     console.log('prevent')
@@ -181,18 +181,23 @@ function onDragStart(event, index) {
     return
   }
 
-  event.preventDefault()
+  const isTouchEvent = event.type == 'touchstart'
+  console.log('isTouchEvent', isTouchEvent)
 
   // Record initial position for drag distance calculation
   dragStartPosition.value = getEventPosition(event)
   dragDistance.value = 0
   wasDragging.value = false
 
-  document.addEventListener('mousemove', onDrag)
-  document.addEventListener('mouseup', onDragStop)
+  if (isTouchEvent) {
+    document.addEventListener('touchmove', onDrag, { passive: false })
+    document.addEventListener('touchend', onDragStop)
+  } else {
+    event.preventDefault()
 
-  document.addEventListener('touchmove', onDrag)
-  document.addEventListener('touchend', onDragStop)
+    document.addEventListener('mousemove', onDrag)
+    document.addEventListener('mouseup', onDragStop)
+  }
 
   isDragging.value = true
   initialIndex.value = index
@@ -218,6 +223,10 @@ function onDragStart(event, index) {
 
 function onDrag(event) {
   const currentPosition = getEventPosition(event)
+
+  if (event.type === 'touchmove') {
+    event.preventDefault()
+  }
 
   // Calculate drag distance
   if (dragStartPosition.value) {
