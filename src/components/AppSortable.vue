@@ -131,7 +131,7 @@ const transitionStyle = computed(() => ({
 }))
 
 function getStyle(index) {
-  if (initialIndex.value === null) {
+  if (initialIndex.value === null || !isDragging.value) {
     return {}
   }
 
@@ -147,7 +147,7 @@ function getStyle(index) {
     transform: 'translate3d(0, 0, 0)'
   }
 
-  if (isDragging.value && isBetween(index, initialIndex.value, scrollIndex.value)) {
+  if (isBetween(index, initialIndex.value, scrollIndex.value)) {
     const transform = (initialIndex.value - scrollIndex.value < 0) ? '-100%' : '100%'
     const transformX = isVertical.value ? 0 : transform
     const transformY = isVertical.value ? transform : 0
@@ -207,8 +207,6 @@ function onDragStart(event, index) {
   elementDragOffset.value = isVertical.value ? y : x
 
   onDrag(event)
-
-  emits('start', { index })
 }
 
 function onDrag(event) {
@@ -222,6 +220,9 @@ function onDrag(event) {
     const dragDelta = getDragDelta()
     if (Math.abs(dragDelta) > props.dragThreshold) {
       isDragging.value = true
+      emits('start', { index: initialIndex })
+    } else {
+      return
     }
   }
 
@@ -254,6 +255,10 @@ function onDragStop() {
     animationRequest = null
   }
 
+  if (!isDragging.value) {
+    return
+  }
+
   items.value = initialIndex.value != scrollIndex.value
     ? moveArrayElement(items.value, initialIndex.value, scrollIndex.value)
     : items.value
@@ -273,6 +278,7 @@ function onItemClick(event) {
     return
   }
 
+  console.log('isDragging.value', isDragging.value)
   event.stopPropagation()
   isDragging.value = false
 }
