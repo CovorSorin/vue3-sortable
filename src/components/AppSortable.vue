@@ -70,7 +70,7 @@ const props = defineProps({
   },
   dragThreshold: {
     type: Number,
-    default: 3 // pixels - below this is considered a click, not a drag
+    default: 3
   }
 })
 
@@ -110,15 +110,14 @@ let animationRequest = null
 let initialDragPosition = null
 let currentDragPosition = null
 
-function onItemClick(event) {
-  console.log('onItemClick', isDragging.value)
-  if (!isDragging.value) {
-    return
+function getDragDelta() {
+  if (!initialDragPosition || !currentDragPosition) {
+    return 0
   }
-  console.log('prevent onItemClick')
-  event.preventDefault()
-  event.stopPropagation()
-  isDragging.value = false
+
+  return isVertical.value
+    ? currentDragPosition.y - initialDragPosition.y
+    : currentDragPosition.x - initialDragPosition.x
 }
 
 function onWheel(event) {
@@ -178,12 +177,12 @@ function onDragStart(event, index) {
   }
 
   const isTouchEvent = event.type == 'touchstart'
-  console.log('isTouchEvent', isTouchEvent)
 
   if (isTouchEvent) {
     document.addEventListener('touchmove', onDrag, { passive: false })
     document.addEventListener('touchend', onDragStop)
   } else {
+    // Only prevent mouse events, otherwise click events on mobile won't register.
     event.preventDefault()
 
     document.addEventListener('mousemove', onDrag)
@@ -219,23 +218,13 @@ function onDrag(event) {
     event.preventDefault()
   }
 
-  const delta = isVertical.value
-    ? currentDragPosition.y - initialDragPosition.y
-    : currentDragPosition.x - initialDragPosition.x
-
-  // console.log('delta',delta, currentDragPosition.y , initialDragPosition.y)
-  // const dx = initialDragPosition.x - currentDragPosition.x
-  // const dy = initialDragPosition.y - currentDragPosition.y
-  // const delta = Math.sqrt(dx * dx + dy * dy)
-
-  // console.log('delta', delta)
-  if (Math.abs(delta) > props.dragThreshold) {
-    isDragging.value = true
-  }
   if (!isDragging.value) {
-    console.log('jussst ocne')
-    // console.log(delta > props.dragThreshold, delta, props.dragThreshold)
+    const dragDelta = getDragDelta()
+    if (Math.abs(dragDelta) > props.dragThreshold) {
+      isDragging.value = true
+    }
   }
+
   const { x, y } = getRelativeEventPosition(event, sortableRef.value)
   const size = isVertical.value ? target.offsetHeight : target.offsetWidth
   const padding = size / 2
@@ -275,10 +264,17 @@ function onDragStop() {
     value: items.value
   })
 
-  isDragging.value = false
   initialIndex.value = null
   scrollIndex.value = null
-  // Note: wasDragging is not reset here - it will be reset after click is handled
+}
+
+function onItemClick(event) {
+  if (!isDragging.value) {
+    return
+  }
+
+  event.stopPropagation()
+  isDragging.value = false
 }
 
 function moveTarget() {
@@ -348,10 +344,7 @@ function autosScroll() {
     return
   }
 
-  const dragDelta = isVertical.value
-    ? currentDragPosition.y - initialDragPosition.y
-    : currentDragPosition.x - initialDragPosition.x
-
+  const dragDelta = getDragDelta()
   const dragDirection = dragDelta > 0 ? 1 : -1
 
   if (Math.abs(dragDelta) < 5 || dragDirection != direction) {
