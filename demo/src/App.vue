@@ -59,10 +59,6 @@ function addRandomHorizontalItem() {
   const index = addRandomItem(horizontalList.value)
   scrollHorizontallyToIndex(horizontalListRef.value.$el, index)
 }
-
-function onClick() {
-  console.log('onclickaa')
-}
 </script>
 
 <template>
@@ -78,7 +74,7 @@ function onClick() {
     ref="verticalListRef"
     class="sortable-vertical"
     item-class="item"
-    :handle="null"
+    handle="handle"
     direction="vertical"
     transition-group-name="scale-y"
     :item-key="getKey"
@@ -86,7 +82,7 @@ function onClick() {
     <template #item="{ item, index }">
       <div>
         <div class="handle mr-8" :style="{ backgroundColor: item.color }"></div>
-        <div @click="onClick">{{ item.name }}</div>
+        <div>{{ item.name }}</div>
         <button @click="removeItem(verticalList, index)">Remove</button>
       </div>
     </template>
@@ -112,7 +108,7 @@ function onClick() {
     <template #item="{ item, index }">
       <div>
         <div class="handle" :style="{ backgroundColor: item.color }"></div>
-        <div @click="onClick">{{ item.name }}</div>
+        <div>{{ item.name }}</div>
         <button @click="removeItem(horizontalList, index)">Remove</button>
       </div>
     </template>
