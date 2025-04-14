@@ -106,7 +106,7 @@ const elementDragOffset = ref(0)
 let target = null
 let animationRequest = null
 
-// Relative to the viewport.
+// These values are relative to the viewport.
 let initialDragPosition = null
 let currentDragPosition = null
 
@@ -167,7 +167,7 @@ function onDragStart(event, index) {
     return
   }
 
-  // Ignore right click.
+  // Ignore right click events.
   if (event.button && event.button != 0) {
     return
   }
@@ -278,7 +278,6 @@ function onItemClick(event) {
     return
   }
 
-  console.log('isDragging.value', isDragging.value)
   event.stopPropagation()
   isDragging.value = false
 }
