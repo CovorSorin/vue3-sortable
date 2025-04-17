@@ -246,14 +246,14 @@ function onDragStop() {
   document.removeEventListener('touchend', onDragStop)
   document.removeEventListener('touchcancel', onDragStop)
 
-  cancelAutoScroll()
-
   target.style.transform = ''
   target = null
 
   if (!isDragging.value) {
     return
   }
+
+  isDragging.value = false
 
   items.value = initialIndex.value != currentIndex.value
     ? moveArrayElement(items.value, initialIndex.value, currentIndex.value)
@@ -295,6 +295,16 @@ let previousTimeStamp = 0
 const checkInterval = 10
 
 function animate(timestamp) {
+  if (!isDragging.value || !target) {
+    console.log('cancelAutoScroll')
+    if (animationRequest) {
+      cancelAnimationFrame(animationRequest)
+      animationRequest = null
+    }
+    return
+  }
+
+  console.log('animate')
   const elapsed = timestamp - previousTimeStamp
 
   if (elapsed >= checkInterval) {
@@ -305,19 +315,7 @@ function animate(timestamp) {
   animationRequest = requestAnimationFrame(animate)
 }
 
-function cancelAutoScroll() {
-  if (animationRequest) {
-    cancelAnimationFrame(animationRequest)
-    animationRequest = null
-  }
-}
-
 function autosScroll() {
-  if (!isDragging.value || !target) {
-    cancelAutoScroll()
-    return
-  }
-
   const size = isVertical.value ? target.offsetHeight : target.offsetWidth
   const padding = size / 2
 
@@ -362,7 +360,6 @@ function autosScroll() {
 
   sortableRef.value[scrollKey] += direction * acceleration * SCROLL_SPEED
   const scrollOffset = direction * Math.abs(initialScroll - sortableRef.value[scrollKey])
-
   const xScrollOffset = isVertical.value ? 0 : scrollOffset
   const yScrollOffset = isVertical.value ? scrollOffset : 0
   position.value.x = clamp(position.value.x + xScrollOffset, sortableRef.value.scrollLeft + padding, sortableRef.value.offsetWidth + sortableRef.value.scrollLeft - padding)
