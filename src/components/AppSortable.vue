@@ -53,10 +53,6 @@ const props = defineProps({
     type: String,
     default: 'ease'
   },
-  autosScrollEnabled: {
-    type: Boolean,
-    default: true
-  },
   disabled: {
     type: Boolean,
     default: false
@@ -193,7 +189,7 @@ function onDragStart(event, index) {
   sortableHeight.value = sortableRef.value.scrollHeight
   sortableWidth.value = sortableRef.value.scrollWidth
 
-  target = event.currentTarget
+  target = sortableRef.value.children[index]
   initialDragPosition = getEventPosition(event)
 
   const { x, y } = getRelativeEventPosition(event, target)
@@ -204,20 +200,17 @@ function onDrag(event) {
   currentDragPosition = getEventPosition(event)
 
   if (event.type === 'touchmove') {
+    // Prevent scrolling.
     event.preventDefault()
   }
 
   if (!isDragging.value) {
     const dragDelta = getDragDelta()
 
-    // This is where the drag event starts.
+    // This is where the drag event is triggered.
     if (Math.abs(dragDelta) > props.dragThreshold) {
       isDragging.value = true
-
-      if (props.autosScrollEnabled) {
-        animationRequest = requestAnimationFrame(animate)
-      }
-
+      animationRequest = requestAnimationFrame(animate)
       emits('start', { index: initialIndex })
     } else {
       return
@@ -253,8 +246,6 @@ function onDragStop() {
     return
   }
 
-  isDragging.value = false
-
   items.value = initialIndex.value != currentIndex.value
     ? moveArrayElement(items.value, initialIndex.value, currentIndex.value)
     : items.value
@@ -267,6 +258,7 @@ function onDragStop() {
 
   initialIndex.value = null
   currentIndex.value = null
+  isDragging.value = false
 }
 
 function onItemClick(event) {
@@ -291,25 +283,20 @@ function moveTarget() {
   target.style.transform = `translate3d(${transformX}px, ${transformY}px, 0)`
 }
 
-let previousTimeStamp = 0
-const checkInterval = 10
+let previousAutoScrollTimestamp = 0
 
 function animate(timestamp) {
-  if (!isDragging.value || !target) {
-    console.log('cancelAutoScroll')
-    if (animationRequest) {
-      cancelAnimationFrame(animationRequest)
-      animationRequest = null
-    }
+  if (!isDragging.value) {
+    cancelAnimationFrame(animationRequest)
+    animationRequest = null
     return
   }
 
-  console.log('animate')
-  const elapsed = timestamp - previousTimeStamp
+  const elapsed = timestamp - previousAutoScrollTimestamp
 
-  if (elapsed >= checkInterval) {
+  if (elapsed >= 10) {
     autosScroll()
-    previousTimeStamp = timestamp
+    previousAutoScrollTimestamp = timestamp
   }
 
   animationRequest = requestAnimationFrame(animate)
