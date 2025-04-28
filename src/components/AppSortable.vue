@@ -68,6 +68,10 @@ const props = defineProps({
   dragThreshold: {
     type: Number,
     default: 3
+  },
+  timeThreshold: {
+    type: Number,
+    default: 100
   }
 })
 
@@ -110,6 +114,10 @@ let animationRequest = null
 // These values are relative to the viewport.
 let initialDragPosition = null
 let currentDragPosition = null
+
+let startedDragAt = null
+let initialTarget = null
+let isTouchEvent = false
 
 function getDragDelta() {
   if (!initialDragPosition || !currentDragPosition) {
@@ -173,8 +181,10 @@ function onDragStart(event, index) {
     return
   }
 
-  const isTouchEvent = event.type == 'touchstart'
-
+  isTouchEvent = event.type == 'touchstart'
+  startedDragAt = performance.now()
+  initialTarget = event.target
+  console.log('onDragStart event', event)
   if (isTouchEvent) {
     document.addEventListener('touchmove', onDrag, { passive: false })
     document.addEventListener('touchend', onDragStop)
@@ -202,22 +212,35 @@ function onDragStart(event, index) {
 
 function onDrag(event) {
   currentDragPosition = getEventPosition(event)
+  const touch = event.touches[0]
 
-  if (event.type === 'touchmove') {
-    // Prevent scrolling.
-    event.preventDefault()
-  }
-
+  // console.log('event', event.target,currentTarget)
+  // return
   if (!isDragging.value) {
     const dragDelta = getDragDelta()
+    const isDragThresholdExceeded = Math.abs(dragDelta) > props.dragThreshold
+    // TODO: Check these only on mobile.
+    const isTimeThresholdExceeded = (performance.now() - startedDragAt) > props.timeThreshold
+    const currentTarget = document.elementFromPoint(touch.clientX, touch.clientY)
+    const isSameTarget = currentTarget == initialTarget
 
+    console.log('performance.now() - startedDragAt', performance.now() - startedDragAt)
+    console.log('sss', isDragThresholdExceeded && isTimeThresholdExceeded, event.target, initialTarget)
+    // console.log('isTimeThresholdExceeded', isSameTarget && isTimeThresholdExceeded)
     // This is where the drag event is triggered.
-    if (Math.abs(dragDelta) > props.dragThreshold) {
+    if (isDragThresholdExceeded && isTimeThresholdExceeded && isSameTarget) {
       isDragging.value = true
       animationRequest = requestAnimationFrame(animate)
       emits('start', { index: initialIndex })
     } else {
       return
+    }
+  }
+
+  if (isDragging.value) {
+    if (event.type === 'touchmove') {
+      // Prevent scrolling.
+      event.preventDefault()
     }
   }
 
@@ -245,6 +268,10 @@ function onDragStop() {
 
   target.style.transform = ''
   target = null
+
+  startedDragAt = null
+  isTouchEvent = false
+  initialTarget = null
 
   if (!isDragging.value) {
     return
