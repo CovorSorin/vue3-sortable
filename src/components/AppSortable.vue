@@ -211,24 +211,21 @@ function onDragStart(event, index) {
 }
 
 function onDrag(event) {
-  currentDragPosition = getEventPosition(event)
-  const touch = event.touches[0]
+  const timeDelta = performance.now() - startedDragAt
+  const isTimeThresholdExceeded = timeDelta > props.timeThreshold
+  if (!isTimeThresholdExceeded) {
+    onDragStop()
+    return
+  }
 
-  // console.log('event', event.target,currentTarget)
-  // return
+  currentDragPosition = getEventPosition(event)
+
   if (!isDragging.value) {
     const dragDelta = getDragDelta()
     const isDragThresholdExceeded = Math.abs(dragDelta) > props.dragThreshold
-    // TODO: Check these only on mobile.
-    const isTimeThresholdExceeded = (performance.now() - startedDragAt) > props.timeThreshold
-    const currentTarget = document.elementFromPoint(touch.clientX, touch.clientY)
-    const isSameTarget = currentTarget == initialTarget
 
-    console.log('performance.now() - startedDragAt', performance.now() - startedDragAt)
-    console.log('sss', isDragThresholdExceeded && isTimeThresholdExceeded, event.target, initialTarget)
-    // console.log('isTimeThresholdExceeded', isSameTarget && isTimeThresholdExceeded)
     // This is where the drag event is triggered.
-    if (isDragThresholdExceeded && isTimeThresholdExceeded && isSameTarget) {
+    if (isDragThresholdExceeded) {
       isDragging.value = true
       animationRequest = requestAnimationFrame(animate)
       emits('start', { index: initialIndex })
@@ -237,11 +234,8 @@ function onDrag(event) {
     }
   }
 
-  if (isDragging.value) {
-    if (event.type === 'touchmove') {
-      // Prevent scrolling.
-      event.preventDefault()
-    }
+  if (isDragging.value && event.type === 'touchmove') {
+    event.preventDefault()
   }
 
   const { x, y } = getRelativeEventPosition(event, sortableRef.value)
