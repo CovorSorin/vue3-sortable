@@ -69,9 +69,13 @@ const props = defineProps({
     type: Number,
     default: 3
   },
-  timeThreshold: {
+  dragDelay: {
     type: Number,
-    default: 100
+    default: 150
+  },
+  dragDelayOnTouchOnly: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -116,7 +120,6 @@ let initialDragPosition = null
 let currentDragPosition = null
 
 let startedDragAt = null
-let initialTarget = null
 let isTouchEvent = false
 
 function getDragDelta() {
@@ -183,8 +186,7 @@ function onDragStart(event, index) {
 
   isTouchEvent = event.type == 'touchstart'
   startedDragAt = performance.now()
-  initialTarget = event.target
-  console.log('onDragStart event', event)
+
   if (isTouchEvent) {
     document.addEventListener('touchmove', onDrag, { passive: false })
     document.addEventListener('touchend', onDragStop)
@@ -211,11 +213,13 @@ function onDragStart(event, index) {
 }
 
 function onDrag(event) {
-  const timeDelta = performance.now() - startedDragAt
-  const isTimeThresholdExceeded = timeDelta > props.timeThreshold
-  if (!isTimeThresholdExceeded) {
-    onDragStop()
-    return
+  if (props.dragDelayOnTouchOnly ? isTouchEvent : true) {
+    const timeDelta = performance.now() - startedDragAt
+    const isTimeThresholdExceeded = timeDelta > props.dragDelay
+    if (!isTimeThresholdExceeded) {
+      onDragStop()
+      return
+    }
   }
 
   currentDragPosition = getEventPosition(event)
@@ -234,7 +238,7 @@ function onDrag(event) {
     }
   }
 
-  if (isDragging.value && event.type === 'touchmove') {
+  if (isDragging.value && isTouchEvent) {
     event.preventDefault()
   }
 
@@ -265,7 +269,6 @@ function onDragStop() {
 
   startedDragAt = null
   isTouchEvent = false
-  initialTarget = null
 
   if (!isDragging.value) {
     return
