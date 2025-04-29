@@ -222,6 +222,11 @@ function onDrag(event) {
     }
   }
 
+  if (isTouchEvent) {
+    // Prevent scrolling.
+    event.preventDefault()
+  }
+
   currentDragPosition = getEventPosition(event)
 
   if (!isDragging.value) {
@@ -236,10 +241,6 @@ function onDrag(event) {
     } else {
       return
     }
-  }
-
-  if (isDragging.value && isTouchEvent) {
-    event.preventDefault()
   }
 
   const { x, y } = getRelativeEventPosition(event, sortableRef.value)
