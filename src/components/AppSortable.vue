@@ -252,8 +252,8 @@ function onDrag(event) {
   }
 
   const { x, y } = getRelativeEventPosition(event, sortableRef.value)
-  position.value.x = clamp(x, sortableRef.value.scrollLeft, sortableRef.value.offsetWidth + sortableRef.value.scrollLeft)
-  position.value.y = clamp(y, sortableRef.value.scrollTop, sortableRef.value.offsetHeight + sortableRef.value.scrollTop)
+  position.value.x = x
+  position.value.y = y
 
   moveTarget()
 }
@@ -303,8 +303,10 @@ function onItemClick(event) {
 function moveTarget() {
   const size = isVertical.value ? target.offsetHeight : target.offsetWidth
   const coordinate = isVertical.value ? position.value.y : position.value.x
-  const manCoordinate = sortableSize.value - size
-  const clampedCoordinate = clamp(coordinate - elementDragOffset.value, 0, manCoordinate)
+  const minCoordinate = isVertical.value ? sortableRef.value.scrollTop : sortableRef.value.scrollLeft
+  // const manCoordinate = sortableSize.value - size
+  const manCoordinate = sortableRef.value.offsetHeight + sortableRef.value.scrollTop - size
+  const clampedCoordinate = clamp(coordinate - elementDragOffset.value, minCoordinate, manCoordinate)
 
   currentIndex.value = Math.floor(coordinate / size)
 
