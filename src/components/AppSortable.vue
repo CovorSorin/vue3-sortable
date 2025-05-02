@@ -302,11 +302,17 @@ function onItemClick(event) {
 
 function moveTarget() {
   const size = isVertical.value ? target.offsetHeight : target.offsetWidth
+  const scroll = isVertical.value ? sortableRef.value.scrollTop : sortableRef.value.scrollLeft
   const coordinate = isVertical.value ? position.value.y : position.value.x
-  const minCoordinate = isVertical.value ? sortableRef.value.scrollTop : sortableRef.value.scrollLeft
-  // const manCoordinate = sortableSize.value - size
-  const manCoordinate = sortableRef.value.offsetHeight + sortableRef.value.scrollTop - size
-  const clampedCoordinate = clamp(coordinate - elementDragOffset.value, minCoordinate, manCoordinate)
+
+  const viewportSize = isVertical.value
+    ? sortableRef.value.offsetHeight
+    : sortableRef.value.offsetWidth
+
+  const minCoordinate = scroll
+  const maxCoordinate = viewportSize + scroll - size
+
+  const clampedCoordinate = clamp(coordinate - elementDragOffset.value, minCoordinate, maxCoordinate)
 
   currentIndex.value = Math.floor(coordinate / size)
 
