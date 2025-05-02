@@ -105,9 +105,8 @@ const styles = ref(items.value.map(() => ({})))
 
 const sortableRef = useTemplateRef('sortable')
 
-const sortableHeight = ref(0)
-const sortableWidth = ref(0)
-const sortableSize = computed(() => isVertical.value ? sortableHeight.value : sortableWidth.value)
+const sortableScrollSize = ref(0)
+const sortableViewportSize = ref(0)
 
 const position = ref({
   x: 0,
@@ -210,8 +209,13 @@ function onDragStart(event, index) {
   isDragging.value = false
   initialIndex.value = index
 
-  sortableHeight.value = sortableRef.value.scrollHeight
-  sortableWidth.value = sortableRef.value.scrollWidth
+  sortableScrollSize.value = isVertical.value
+    ? sortableRef.value.scrollHeight
+    : sortableRef.value.scrollWidth
+
+  sortableViewportSize.value = isVertical.value
+    ? sortableRef.value.offsetHeight
+    : sortableRef.value.offsetWidth
 
   target = sortableRef.value.children[index]
   initialDragPosition = getEventPosition(event)
@@ -305,12 +309,8 @@ function moveTarget() {
   const scroll = isVertical.value ? sortableRef.value.scrollTop : sortableRef.value.scrollLeft
   const coordinate = isVertical.value ? position.value.y : position.value.x
 
-  const viewportSize = isVertical.value
-    ? sortableRef.value.offsetHeight
-    : sortableRef.value.offsetWidth
-
   const minCoordinate = scroll
-  const maxCoordinate = viewportSize + scroll - size
+  const maxCoordinate = sortableViewportSize.value + scroll - size
 
   const clampedCoordinate = clamp(coordinate - elementDragOffset.value, minCoordinate, maxCoordinate)
 
@@ -360,17 +360,13 @@ function autoScroll() {
     ? 'scrollTop'
     : 'scrollLeft'
 
-  const viewportSize = isVertical.value
-    ? sortableRef.value.offsetHeight
-    : sortableRef.value.offsetWidth
-
   const initialScroll = sortableRef.value[scrollKey]
 
   let direction = 1
   let acceleration = 1
 
-  if ((sortableSize.value - sortableRef.value[scrollKey]) != viewportSize && relativeCoordinate > (viewportSize - SCROLL_PADDING)) {
-    acceleration = clamp(relativeCoordinate + padding - (viewportSize - SCROLL_MARGIN), 0, SCROLL_MARGIN) / SCROLL_MARGIN
+  if ((sortableScrollSize.value - sortableRef.value[scrollKey]) != sortableViewportSize.value && relativeCoordinate > (sortableViewportSize.value - SCROLL_PADDING)) {
+    acceleration = clamp(relativeCoordinate + padding - (sortableViewportSize.value - SCROLL_MARGIN), 0, SCROLL_MARGIN) / SCROLL_MARGIN
     direction = 1
   } else if (sortableRef.value[scrollKey] > 0 && relativeCoordinate < SCROLL_PADDING) {
     acceleration = 1 - clamp(relativeCoordinate - padding, 0, SCROLL_MARGIN) / SCROLL_MARGIN
