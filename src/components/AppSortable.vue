@@ -252,21 +252,9 @@ function onDrag(event) {
   }
 
   const { x, y } = getRelativeEventPosition(event, sortableRef.value)
-  const size = isVertical.value ? target.offsetHeight : target.offsetWidth
-  // const padding = size / 2
-  const padding = 0
+  position.value.x = clamp(x, sortableRef.value.scrollLeft, sortableRef.value.offsetWidth + sortableRef.value.scrollLeft)
+  position.value.y = clamp(y, sortableRef.value.scrollTop, sortableRef.value.offsetHeight + sortableRef.value.scrollTop)
 
-  // const offset = padding - elementDragOffset.value
-  // const xOffset = isVertical.value ? 0 : offset
-  // const yOffset = isVertical.value ? offset : 0
-  //
-  // position.value.x = clamp(x + xOffset, sortableRef.value.scrollLeft + padding, sortableRef.value.offsetWidth + sortableRef.value.scrollLeft - padding)
-  // position.value.y = clamp(y + yOffset, sortableRef.value.scrollTop + padding, sortableRef.value.offsetHeight + sortableRef.value.scrollTop - padding)
-
-  position.value.x = clamp(x, sortableRef.value.scrollLeft + padding, sortableRef.value.offsetWidth + sortableRef.value.scrollLeft - padding)
-  position.value.y = clamp(y, sortableRef.value.scrollTop + padding, sortableRef.value.offsetHeight + sortableRef.value.scrollTop - padding)
-
-  // console.log(`position: ${position.value.x}, ${position.value.y}`)
   moveTarget()
 }
 
@@ -320,7 +308,7 @@ function moveTarget() {
 
   // const transform = coordinate - size * initialIndex.value - size / 2
   const transform = coordinate - size * initialIndex.value - elementDragOffset.value
-  console.log('transform', transform, elementDragOffset.value)
+  console.log('transform', coordinate, transform, elementDragOffset.value)
   const transformX = isVertical.value ? 0 : transform
   const transformY = isVertical.value ? transform : 0
 
