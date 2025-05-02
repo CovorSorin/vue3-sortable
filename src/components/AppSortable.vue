@@ -303,12 +303,12 @@ function onItemClick(event) {
 function moveTarget() {
   const size = isVertical.value ? target.offsetHeight : target.offsetWidth
   const coordinate = isVertical.value ? position.value.y : position.value.x
+  const manCoordinate = sortableSize.value - size
+  const clampedCoordinate = clamp(coordinate - elementDragOffset.value, 0, manCoordinate)
 
   currentIndex.value = Math.floor(coordinate / size)
 
-  // const transform = coordinate - size * initialIndex.value - size / 2
-  const transform = coordinate - size * initialIndex.value - elementDragOffset.value
-  console.log('transform', coordinate, transform, elementDragOffset.value)
+  const transform = clampedCoordinate - size * initialIndex.value
   const transformX = isVertical.value ? 0 : transform
   const transformY = isVertical.value ? transform : 0
 
@@ -336,7 +336,6 @@ function animateAutoScroll(timestamp) {
 }
 
 function autoScroll() {
-  return
   const size = isVertical.value ? target.offsetHeight : target.offsetWidth
   const padding = size / 2
 
@@ -383,8 +382,8 @@ function autoScroll() {
   const scrollOffset = direction * Math.abs(initialScroll - sortableRef.value[scrollKey])
   const xScrollOffset = isVertical.value ? 0 : scrollOffset
   const yScrollOffset = isVertical.value ? scrollOffset : 0
-  position.value.x = clamp(position.value.x + xScrollOffset, sortableRef.value.scrollLeft + padding, sortableRef.value.offsetWidth + sortableRef.value.scrollLeft - padding)
-  position.value.y = clamp(position.value.y + yScrollOffset, sortableRef.value.scrollTop + padding, sortableRef.value.offsetHeight + sortableRef.value.scrollTop - padding)
+  position.value.x = clamp(position.value.x + xScrollOffset, sortableRef.value.scrollLeft, sortableRef.value.offsetWidth + sortableRef.value.scrollLeft)
+  position.value.y = clamp(position.value.y + yScrollOffset, sortableRef.value.scrollTop, sortableRef.value.offsetHeight + sortableRef.value.scrollTop)
   moveTarget()
 }
 
