@@ -101,10 +101,12 @@ const itemKeys = computed(() => {
   })
 })
 
+const styles = ref(items.value.map(() => ({})))
+
 const isVertical = computed(() => props.direction == 'vertical')
 const scrollKey = computed(() => isVertical.value ? 'scrollTop' : 'scrollLeft')
-
-const styles = ref(items.value.map(() => ({})))
+const sizeKey = computed(() => isVertical.value ? 'offsetHeight' : 'offsetWidth')
+const scrollSizeKey = computed(() => isVertical.value ? 'scrollHeight' : 'scrollWidth')
 
 const sortableScrollSize = ref(0)
 const sortableViewSize = ref(0)
@@ -209,13 +211,8 @@ function onDragStart(event, index) {
   isDragging.value = false
   initialIndex.value = index
 
-  sortableScrollSize.value = isVertical.value
-    ? sortableRef.value.scrollHeight
-    : sortableRef.value.scrollWidth
-
-  sortableViewSize.value = isVertical.value
-    ? sortableRef.value.offsetHeight
-    : sortableRef.value.offsetWidth
+  sortableScrollSize.value = sortableRef.value[scrollSizeKey.value]
+  sortableViewSize.value = sortableRef.value[sizeKey.value]
 
   target = sortableRef.value.children[index]
   initialDragPosition = getEventPosition(event)
@@ -305,13 +302,12 @@ function onItemClick(event) {
 }
 
 function moveTarget() {
-  const targetSize = isVertical.value ? target.offsetHeight : target.offsetWidth
+  const targetSize = target[sizeKey.value]
   const scroll = sortableRef.value[scrollKey.value]
   const coordinate = isVertical.value ? position.value.y : position.value.x
 
   const minCoordinate = scroll
   const maxCoordinate = sortableViewSize.value + scroll - targetSize
-
   const clampedCoordinate = clamp(coordinate - targetDragOffset.value, minCoordinate, maxCoordinate)
 
   currentIndex.value = Math.floor(coordinate / targetSize)
@@ -319,7 +315,6 @@ function moveTarget() {
   const transform = clampedCoordinate - targetSize * initialIndex.value
   const transformX = isVertical.value ? 0 : transform
   const transformY = isVertical.value ? transform : 0
-
   target.style.transform = `translate3d(${transformX}px, ${transformY}px, 0)`
 }
 
@@ -347,7 +342,7 @@ function autoScroll() {
   const SCROLL_MARGIN = 50
   const SCROLL_SPEED = 10
 
-  const targetSize = isVertical.value ? target.offsetHeight : target.offsetWidth
+  const targetSize = target[sizeKey.value]
   const coordinate = isVertical.value ? position.value.y : position.value.x
   const relativeCoordinate = coordinate - sortableRef.value[scrollKey.value]
   const relativeCoordinateStart = relativeCoordinate - targetDragOffset.value
