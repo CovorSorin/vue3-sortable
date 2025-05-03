@@ -365,10 +365,10 @@ function autoScroll() {
   let direction = 1
   let acceleration = 1
 
-  if ((sortableScrollSize.value - sortableRef.value[scrollKey]) != sortableViewportSize.value && relativeCoordinate > (sortableViewportSize.value - SCROLL_PADDING)) {
+  if ((sortableScrollSize.value - initialScroll) != sortableViewportSize.value && relativeCoordinate > (sortableViewportSize.value - SCROLL_PADDING)) {
     acceleration = clamp(relativeCoordinate + padding - (sortableViewportSize.value - SCROLL_MARGIN), 0, SCROLL_MARGIN) / SCROLL_MARGIN
     direction = 1
-  } else if (sortableRef.value[scrollKey] > 0 && relativeCoordinate < SCROLL_PADDING) {
+  } else if (initialScroll > 0 && relativeCoordinate < SCROLL_PADDING) {
     acceleration = 1 - clamp(relativeCoordinate - padding, 0, SCROLL_MARGIN) / SCROLL_MARGIN
     direction = -1
   } else {
@@ -383,9 +383,9 @@ function autoScroll() {
   }
 
   sortableRef.value[scrollKey] += direction * acceleration * SCROLL_SPEED
-  const scrollOffset = direction * Math.abs(initialScroll - sortableRef.value[scrollKey])
-  const xScrollOffset = isVertical.value ? 0 : scrollOffset
-  const yScrollOffset = isVertical.value ? scrollOffset : 0
+  const scrollDelta = direction * Math.abs(initialScroll - sortableRef.value[scrollKey])
+  const xScrollOffset = isVertical.value ? 0 : scrollDelta
+  const yScrollOffset = isVertical.value ? scrollDelta : 0
   position.value.x = clamp(position.value.x + xScrollOffset, sortableRef.value.scrollLeft, sortableRef.value.offsetWidth + sortableRef.value.scrollLeft)
   position.value.y = clamp(position.value.y + yScrollOffset, sortableRef.value.scrollTop, sortableRef.value.offsetHeight + sortableRef.value.scrollTop)
   moveTarget()
