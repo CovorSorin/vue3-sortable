@@ -305,18 +305,18 @@ function onItemClick(event) {
 }
 
 function moveTarget() {
-  const size = isVertical.value ? target.offsetHeight : target.offsetWidth
-  const scroll = isVertical.value ? sortableRef.value.scrollTop : sortableRef.value.scrollLeft
+  const targetSize = isVertical.value ? target.offsetHeight : target.offsetWidth
+  const scrollOffset = isVertical.value ? sortableRef.value.scrollTop : sortableRef.value.scrollLeft
   const coordinate = isVertical.value ? position.value.y : position.value.x
 
-  const minCoordinate = scroll
-  const maxCoordinate = sortableViewportSize.value + scroll - size
+  const minCoordinate = scrollOffset
+  const maxCoordinate = sortableViewportSize.value + scrollOffset - targetSize
 
   const clampedCoordinate = clamp(coordinate - elementDragOffset.value, minCoordinate, maxCoordinate)
 
-  currentIndex.value = Math.floor(coordinate / size)
+  currentIndex.value = Math.floor(coordinate / targetSize)
 
-  const transform = clampedCoordinate - size * initialIndex.value
+  const transform = clampedCoordinate - targetSize * initialIndex.value
   const transformX = isVertical.value ? 0 : transform
   const transformY = isVertical.value ? transform : 0
 
@@ -344,11 +344,11 @@ function animateAutoScroll(timestamp) {
 }
 
 function autoScroll() {
-  const size = isVertical.value ? target.offsetHeight : target.offsetWidth
-  const padding = size / 2
+  const targetSize = isVertical.value ? target.offsetHeight : target.offsetWidth
+  const padding = targetSize / 2
 
   const SCROLL_MARGIN = 50
-  const SCROLL_PADDING = SCROLL_MARGIN + size / 2
+  const SCROLL_PADDING = SCROLL_MARGIN + targetSize / 2
   const SCROLL_SPEED = 10
 
   // Relative to the view (top = 0 and left = 0, even if scrolled).
