@@ -27,8 +27,7 @@
 
 <script setup>
 import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue'
-import { clamp, getEventPosition, getVisibleRelativeEventPosition } from '../modules/utils/mouse.js'
-import { getRelativeEventPosition } from '../modules/utils/mouse.js'
+import { clamp, getEventPosition, getRelativeEventPosition, getVisibleRelativeEventPosition } from '../modules/utils/mouse.js'
 import { hasClassUpToParent, isBetween, moveArrayElement } from '../modules/utils/utils.js'
 
 const props = defineProps({
@@ -104,6 +103,7 @@ const itemKeys = computed(() => {
 const styles = ref(items.value.map(() => ({})))
 
 const isVertical = computed(() => props.direction == 'vertical')
+const positionKey = computed(() => isVertical.value ? 'y' : 'x')
 const scrollKey = computed(() => isVertical.value ? 'scrollTop' : 'scrollLeft')
 const sizeKey = computed(() => isVertical.value ? 'offsetHeight' : 'offsetWidth')
 const scrollSizeKey = computed(() => isVertical.value ? 'scrollHeight' : 'scrollWidth')
@@ -338,10 +338,10 @@ function animateAutoScroll(timestamp) {
   autoScrollAnimationRequest = requestAnimationFrame(animateAutoScroll)
 }
 
-function autoScroll() {
-  const SCROLL_MARGIN = 50
-  const SCROLL_SPEED = 10
+const SCROLL_MARGIN = 50
+const SCROLL_SPEED = 10
 
+function autoScroll() {
   const targetSize = target[sizeKey.value]
   const coordinate = isVertical.value ? position.value.y : position.value.x
   const relativeCoordinate = coordinate - sortableRef.value[scrollKey.value]
@@ -349,17 +349,20 @@ function autoScroll() {
   const relativeCoordinateEnd = relativeCoordinateStart + targetSize
   const initialScroll = sortableRef.value[scrollKey.value]
 
-  let direction = 1
-  let acceleration = 1
-
   const hasReachedMinScroll = initialScroll == 0
   const hasReachedMaxScroll = (sortableScrollSize.value - initialScroll) == sortableViewSize.value
 
-  if (!hasReachedMaxScroll && relativeCoordinateEnd > (sortableViewSize.value - SCROLL_MARGIN)) {
-    acceleration = clamp(relativeCoordinateEnd - (sortableViewSize.value - SCROLL_MARGIN), 0, SCROLL_MARGIN) / SCROLL_MARGIN
+  const startDelta = SCROLL_MARGIN - relativeCoordinateStart
+  const endDelta = relativeCoordinateEnd - (sortableViewSize.value - SCROLL_MARGIN)
+
+  let direction = null
+  let delta = null
+
+  if (!hasReachedMaxScroll && endDelta > 0) {
+    delta = endDelta
     direction = 1
-  } else if (!hasReachedMinScroll && relativeCoordinateStart < SCROLL_MARGIN) {
-    acceleration = clamp(SCROLL_MARGIN - relativeCoordinateStart, 0, SCROLL_MARGIN) / SCROLL_MARGIN
+  } else if (!hasReachedMinScroll && startDelta > 0) {
+    delta = startDelta
     direction = -1
   } else {
     return
@@ -368,16 +371,21 @@ function autoScroll() {
   const dragDelta = getDragDelta()
   const dragDirection = dragDelta > 0 ? 1 : -1
 
+  // Don't auto-scroll if the drag movement is minimal or if
+  // the user is dragging in the opposite direction of the scroll.
   if (Math.abs(dragDelta) < 5 || dragDirection != direction) {
     return
   }
 
+  const acceleration = clamp(delta, 0, SCROLL_MARGIN) / SCROLL_MARGIN
+
   sortableRef.value[scrollKey.value] += direction * acceleration * SCROLL_SPEED
   const scrollDelta = direction * Math.abs(initialScroll - sortableRef.value[scrollKey.value])
-  const xScrollOffset = isVertical.value ? 0 : scrollDelta
-  const yScrollOffset = isVertical.value ? scrollDelta : 0
-  position.value.x = clamp(position.value.x + xScrollOffset, sortableRef.value.scrollLeft, sortableRef.value.offsetWidth + sortableRef.value.scrollLeft)
-  position.value.y = clamp(position.value.y + yScrollOffset, sortableRef.value.scrollTop, sortableRef.value.offsetHeight + sortableRef.value.scrollTop)
+
+  const minCoordinate = sortableRef.value[scrollKey.value]
+  const maxCoordinate = minCoordinate + sortableRef.value[sizeKey.value]
+  position.value[positionKey.value] = clamp(position.value[positionKey.value] + scrollDelta, minCoordinate, maxCoordinate)
+
   moveTarget()
 }
 
