@@ -15,8 +15,8 @@ function toggleHandle() {
 const verticalListRef = useTemplateRef('verticalListRef')
 const horizontalListRef = useTemplateRef('horizontalListRef')
 
-const horizontalList = ref(Array.from(Array(5).keys()).map(index => createItem()))
-const verticalList = ref(Array.from(Array(5).keys()).map(index => createItem()))
+const horizontalList = ref(Array.from(Array(10).keys()).map(index => createItem()))
+const verticalList = ref(Array.from(Array(10).keys()).map(index => createItem()))
 
 function getKey(item) {
   return item.id
@@ -81,6 +81,7 @@ function addRandomHorizontalItem() {
     <button @click="addRandomVerticalItem">Add in random order</button>
   </div>
 
+  <div style="position: relative">
   <AppSortable
     v-model="verticalList"
     ref="verticalListRef"
@@ -99,6 +100,11 @@ function addRandomHorizontalItem() {
       </div>
     </template>
   </AppSortable>
+
+    <div style="position: absolute; top: 0; width: 100%; height: 50px; background: red; opacity: 0.3"></div>
+    <div style="position: absolute; bottom: 0; width: 100%; height: 50px; background: red; opacity: 0.3"></div>
+  </div>
+
 
   <h3>Horizontal list</h3>
 
