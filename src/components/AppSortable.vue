@@ -89,6 +89,8 @@ const emits = defineEmits([
   'change'
 ])
 
+const sortableRef = useTemplateRef('sortable')
+
 const items = defineModel()
 
 const itemKeys = computed(() => {
@@ -104,8 +106,6 @@ const scrollKey = computed(() => isVertical.value ? 'scrollTop' : 'scrollLeft')
 
 const styles = ref(items.value.map(() => ({})))
 
-const sortableRef = useTemplateRef('sortable')
-
 const sortableScrollSize = ref(0)
 const sortableViewSize = ref(0)
 
@@ -115,20 +115,19 @@ const position = ref({
 })
 
 const isDragging = ref(false)
-
 const initialIndex = ref(null)
 const currentIndex = ref(null)
-const elementDragOffset = ref(0)
+const targetDragOffset = ref(0)
 
 let target = null
 let autoScrollAnimationRequest = null
 
-// These values are relative to the viewport.
-let initialDragPosition = null
-let currentDragPosition = null
-
 let startedDragAt = null
 let isTouchEvent = false
+
+// These values are relative to the sortable component viewport.
+let initialDragPosition = null
+let currentDragPosition = null
 
 function getDragDelta() {
   if (!initialDragPosition || !currentDragPosition) {
@@ -222,7 +221,7 @@ function onDragStart(event, index) {
   initialDragPosition = getEventPosition(event)
 
   const { x, y } = getVisibleRelativeEventPosition(event, target, sortableRef.value)
-  elementDragOffset.value = isVertical.value ? y : x
+  targetDragOffset.value = isVertical.value ? y : x
 }
 
 function onDrag(event) {
@@ -313,7 +312,7 @@ function moveTarget() {
   const minCoordinate = scroll
   const maxCoordinate = sortableViewSize.value + scroll - targetSize
 
-  const clampedCoordinate = clamp(coordinate - elementDragOffset.value, minCoordinate, maxCoordinate)
+  const clampedCoordinate = clamp(coordinate - targetDragOffset.value, minCoordinate, maxCoordinate)
 
   currentIndex.value = Math.floor(coordinate / targetSize)
 
@@ -351,7 +350,7 @@ function autoScroll() {
   const targetSize = isVertical.value ? target.offsetHeight : target.offsetWidth
   const coordinate = isVertical.value ? position.value.y : position.value.x
   const relativeCoordinate = coordinate - sortableRef.value[scrollKey.value]
-  const relativeCoordinateStart = relativeCoordinate - elementDragOffset.value
+  const relativeCoordinateStart = relativeCoordinate - targetDragOffset.value
   const relativeCoordinateEnd = relativeCoordinateStart + targetSize
   const initialScroll = sortableRef.value[scrollKey.value]
 
