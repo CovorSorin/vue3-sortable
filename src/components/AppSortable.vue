@@ -112,9 +112,9 @@ const styles = ref(items.value.map(() => ({})))
 
 const isVertical = computed(() => props.direction == 'vertical')
 const positionKey = computed(() => isVertical.value ? 'y' : 'x')
-const scrollKey = computed(() => isVertical.value ? 'scrollTop' : 'scrollLeft')
 const sizeKey = computed(() => isVertical.value ? 'offsetHeight' : 'offsetWidth')
 const scrollSizeKey = computed(() => isVertical.value ? 'scrollHeight' : 'scrollWidth')
+const scrollKey = computed(() => isVertical.value ? 'scrollTop' : 'scrollLeft')
 
 const sortableScrollSize = ref(0)
 const sortableViewSize = ref(0)
@@ -144,9 +144,7 @@ function getDragDelta() {
     return 0
   }
 
-  return isVertical.value
-    ? currentDragPosition.y - initialDragPosition.y
-    : currentDragPosition.x - initialDragPosition.x
+  return currentDragPosition[positionKey.value] - initialDragPosition[positionKey.value]
 }
 
 function onWheel(event) {
@@ -225,8 +223,7 @@ function onDragStart(event, index) {
   target = sortableRef.value.children[index]
   initialDragPosition = getEventPosition(event)
 
-  const { x, y } = getVisibleRelativeEventPosition(event, target, sortableRef.value)
-  targetDragOffset.value = isVertical.value ? y : x
+  targetDragOffset.value = getRelativeEventPosition(event, target)[positionKey.value]
 }
 
 function onDrag(event) {
@@ -312,7 +309,7 @@ function onItemClick(event) {
 function moveTarget() {
   const targetSize = target[sizeKey.value]
   const scroll = sortableRef.value[scrollKey.value]
-  const coordinate = isVertical.value ? position.value.y : position.value.x
+  const coordinate = position.value[positionKey.value]
 
   const minCoordinate = scroll
   const maxCoordinate = sortableViewSize.value + scroll - targetSize
@@ -348,7 +345,7 @@ function animateAutoScroll(timestamp) {
 
 function autoScroll() {
   const targetSize = target[sizeKey.value]
-  const coordinate = isVertical.value ? position.value.y : position.value.x
+  const coordinate = position.value[positionKey.value]
   const relativeCoordinate = coordinate - sortableRef.value[scrollKey.value]
   const relativeCoordinateStart = relativeCoordinate - targetDragOffset.value
   const relativeCoordinateEnd = relativeCoordinateStart + targetSize
