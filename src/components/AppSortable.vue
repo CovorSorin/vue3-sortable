@@ -27,7 +27,7 @@
 
 <script setup>
 import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue'
-import { clamp, getEventPosition, getRelativeEventPosition, getVisibleRelativeEventPosition } from '../modules/utils/mouse.js'
+import { clamp, getEventPosition, getRelativeEventPosition } from '../modules/utils/mouse.js'
 import { hasClassUpToParent, isBetween, moveArrayElement } from '../modules/utils/utils.js'
 
 const props = defineProps({
@@ -129,6 +129,10 @@ const initialIndex = ref(null)
 const currentIndex = ref(null)
 const targetDragOffset = ref(0)
 
+// -1 for moving towards the start
+//  1 for moving towards the end
+const moveDirection = ref(null)
+
 let target = null
 let autoScrollAnimationRequest = null
 
@@ -138,6 +142,7 @@ let isTouchEvent = false
 // These values are relative to the sortable component viewport.
 let initialDragPosition = null
 let currentDragPosition = null
+let previousDragPosition = null
 
 function getDragDelta() {
   if (!initialDragPosition || !currentDragPosition) {
@@ -145,6 +150,21 @@ function getDragDelta() {
   }
 
   return currentDragPosition[positionKey.value] - initialDragPosition[positionKey.value]
+}
+
+function getDragDirection() {
+  if (!previousDragPosition || !currentDragPosition) {
+    return null
+  }
+
+  const delta = currentDragPosition[positionKey.value] - previousDragPosition[positionKey.value]
+
+  // Keep the previous direction if no movement.
+  if (delta === 0) {
+    return moveDirection.value
+  }
+
+  return delta > 0 ? 1 : -1
 }
 
 function onWheel(event) {
@@ -216,12 +236,14 @@ function onDragStart(event, index) {
 
   isDragging.value = false
   initialIndex.value = index
+  moveDirection.value = null
 
   sortableScrollSize.value = sortableRef.value[scrollSizeKey.value]
   sortableViewSize.value = sortableRef.value[sizeKey.value]
 
   target = sortableRef.value.children[index]
   initialDragPosition = getEventPosition(event)
+  previousDragPosition = initialDragPosition
 
   targetDragOffset.value = getRelativeEventPosition(event, target)[positionKey.value]
 }
@@ -241,7 +263,11 @@ function onDrag(event) {
     event.preventDefault()
   }
 
+  previousDragPosition = currentDragPosition || initialDragPosition
   currentDragPosition = getEventPosition(event)
+
+  moveDirection.value = getDragDirection()
+  console.log('moveDirection.', moveDirection.value)
 
   if (!isDragging.value) {
     const dragDelta = getDragDelta()
@@ -272,11 +298,15 @@ function onDragStop() {
   document.removeEventListener('touchend', onDragStop)
   document.removeEventListener('touchcancel', onDragStop)
 
-  target.style.transform = ''
-  target = null
+  if (target) {
+    target.style.transform = ''
+    target = null
+  }
 
   startedDragAt = null
   isTouchEvent = false
+  previousDragPosition = null
+  currentDragPosition = null
 
   if (!isDragging.value) {
     return
@@ -295,6 +325,7 @@ function onDragStop() {
   initialIndex.value = null
   currentIndex.value = null
   isDragging.value = false
+  moveDirection.value = null
 }
 
 function onItemClick(event) {
@@ -311,7 +342,7 @@ function moveTarget() {
   const scroll = sortableRef.value[scrollKey.value]
   const coordinate = position.value[positionKey.value]
 
-  const minCoordinate = scroll
+  const minCoordinate = 0
   const maxCoordinate = sortableViewSize.value + scroll - targetSize
   const clampedCoordinate = clamp(coordinate - targetDragOffset.value, minCoordinate, maxCoordinate)
 
@@ -371,8 +402,8 @@ function autoScroll() {
   }
 
   // Don't auto-scroll if user is dragging in the opposite direction of the scroll.
-  const dragDirection = getDragDelta() > 0 ? 1 : -1
-  if (dragDirection != direction) {
+  if (moveDirection.value != direction) {
+    console.log('nah')
     return
   }
 
