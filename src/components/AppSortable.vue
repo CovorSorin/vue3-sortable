@@ -138,10 +138,9 @@ const dragDirection = ref(null)
 let target = null
 // Whether the target was fully in view at drag start.
 let wasTargetFullyInView = true
-let autoScrollAnimationRequest = null
-
 let startedDragAt = null
 let isTouchEvent = false
+let autoScrollAnimationRequest = null
 
 // These values are relative to the sortable component viewport.
 let initialDragPosition = null
@@ -206,7 +205,11 @@ function getStyle(index) {
 
 watch(currentIndex, () => {
   styles.value = items.value.map((item, index) => getStyle(index))
-  emits('change', { oldIndex: initialIndex.value, newIndex: currentIndex.value })
+
+  emits('change', {
+    oldIndex: initialIndex.value,
+    newIndex: currentIndex.value
+  })
 })
 
 function onDragStart(event, index) {
@@ -286,7 +289,10 @@ function onDrag(event) {
     if (isDragThresholdExceeded) {
       isDragging.value = true
       autoScrollAnimationRequest = requestAnimationFrame(animateAutoScroll)
-      emits('start', { index: initialIndex })
+
+      emits('start', {
+        index: initialIndex
+      })
     } else {
       return
     }
@@ -314,6 +320,7 @@ function onDragStop() {
 
   startedDragAt = null
   isTouchEvent = false
+  initialDragPosition = null
   previousDragPosition = null
   currentDragPosition = null
 
@@ -333,8 +340,8 @@ function onDragStop() {
 
   initialIndex.value = null
   currentIndex.value = null
-  isDragging.value = false
   dragDirection.value = null
+  isDragging.value = false
 }
 
 function onItemClick(event) {
@@ -423,16 +430,14 @@ function autoScroll() {
 
   const acceleration = clamp(delta, 0, props.autoScrollMargin) / props.autoScrollMargin
 
-  // Attempt to scroll by the calculated amount
   sortableRef.value[scrollKey.value] += direction * acceleration * props.autoScrollSpeed
-
-  // The browser may limit actual scrolling due to boundaries or other constraints
-  // So we measure the actual scroll amount that occurred rather than assuming our requested change was applied exactly
+  // The browser may not scroll by the new value due to boundaries or other constraints,
+  // so we measure the actual scroll amount that occurred.
   const scrollDelta = direction * Math.abs(initialScroll - sortableRef.value[scrollKey.value])
 
   const minCoordinate = sortableRef.value[scrollKey.value]
   const maxCoordinate = minCoordinate + sortableRef.value[sizeKey.value]
-  position.value[positionKey.value] = clamp(position.value[positionKey.value] + scrollDelta, minCoordinate, maxCoordinate)
+  position.value[positionKey.value] = clamp(coordinate + scrollDelta, minCoordinate, maxCoordinate)
 
   moveTarget()
 }
