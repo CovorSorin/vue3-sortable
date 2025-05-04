@@ -342,7 +342,7 @@ function moveTarget() {
   const scroll = sortableRef.value[scrollKey.value]
   const coordinate = position.value[positionKey.value]
 
-  const minCoordinate = 0
+  const minCoordinate = scroll
   const maxCoordinate = sortableViewSize.value + scroll - targetSize
   const clampedCoordinate = clamp(coordinate - targetDragOffset.value, minCoordinate, maxCoordinate)
 
@@ -401,15 +401,18 @@ function autoScroll() {
     return
   }
 
-  // Don't auto-scroll if user is dragging in the opposite direction of the scroll.
+  // Don't auto-scroll if the user is dragging in the opposite direction of the scroll.
   if (moveDirection.value != direction) {
-    console.log('nah')
     return
   }
 
   const acceleration = clamp(delta, 0, props.autoScrollMargin) / props.autoScrollMargin
 
   sortableRef.value[scrollKey.value] += direction * acceleration * props.autoScrollSpeed
+  // The browser may limit actual scrolling due to boundaries or other constraints
+  // So we measure the actual scroll amount that occurred rather than assuming our requested change was applied exactly
+
+  // Only update the position with the actual scroll delta, since it might be slightly different.
   const scrollDelta = direction * Math.abs(initialScroll - sortableRef.value[scrollKey.value])
 
   const minCoordinate = sortableRef.value[scrollKey.value]
