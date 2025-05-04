@@ -28,7 +28,7 @@
 <script setup>
 import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { clamp, getEventPosition, getRelativeEventPosition } from '../modules/utils/mouse.js'
-import { hasClassUpToParent, isBetween, moveArrayElement } from '../modules/utils/utils.js'
+import { getElementBounds, hasClassUpToParent, isBetween, moveArrayElement } from '../modules/utils/utils.js'
 
 const props = defineProps({
   direction: {
@@ -102,7 +102,7 @@ const items = defineModel()
 
 const itemKeys = computed(() => {
   return items.value.map((item, index) => {
-    return (typeof props.itemKey === 'function')
+    return (typeof props.itemKey == 'function')
       ? props.itemKey(item, index)
       : item[props.itemKey]
   })
@@ -115,6 +115,8 @@ const positionKey = computed(() => isVertical.value ? 'y' : 'x')
 const sizeKey = computed(() => isVertical.value ? 'offsetHeight' : 'offsetWidth')
 const scrollSizeKey = computed(() => isVertical.value ? 'scrollHeight' : 'scrollWidth')
 const scrollKey = computed(() => isVertical.value ? 'scrollTop' : 'scrollLeft')
+const boundsStartKey = computed(() => isVertical.value ? 'top' : 'left')
+const boundsEndKey = computed(() => isVertical.value ? 'bottom' : 'right')
 
 const sortableScrollSize = ref(0)
 const sortableViewSize = ref(0)
@@ -131,14 +133,12 @@ const targetDragOffset = ref(0)
 
 // -1 for moving towards the start
 //  1 for moving towards the end
-const moveDirection = ref(null)
+const dragDirection = ref(null)
 
 let target = null
+// Whether the target was fully in view at drag start.
+let wasTargetFullyInView = true
 let autoScrollAnimationRequest = null
-
-// Used to track if the initial position of the dragged item was fully in view
-let initialItemWasFullyInView = true
-let initialTargetPosition = null
 
 let startedDragAt = null
 let isTouchEvent = false
@@ -163,9 +163,9 @@ function getDragDirection() {
 
   const delta = currentDragPosition[positionKey.value] - previousDragPosition[positionKey.value]
 
-  // Keep the previous direction if no movement.
-  if (delta === 0) {
-    return moveDirection.value
+  // If there's no movement, keep the previous direction.
+  if (delta == 0) {
+    return dragDirection.value
   }
 
   return delta > 0 ? 1 : -1
@@ -240,7 +240,7 @@ function onDragStart(event, index) {
 
   isDragging.value = false
   initialIndex.value = index
-  moveDirection.value = null
+  dragDirection.value = null
 
   sortableScrollSize.value = sortableRef.value[scrollSizeKey.value]
   sortableViewSize.value = sortableRef.value[sizeKey.value]
@@ -251,24 +251,11 @@ function onDragStart(event, index) {
 
   targetDragOffset.value = getRelativeEventPosition(event, target)[positionKey.value]
 
-  // Calculate the position of the target relative to the scroll container
-  const targetRect = target.getBoundingClientRect()
-  const sortableRect = sortableRef.value.getBoundingClientRect()
+  const targetBounds = getElementBounds(target, sortableRef.value)
 
-  initialTargetPosition = isVertical.value
-    ? { top: targetRect.top - sortableRect.top, bottom: targetRect.bottom - sortableRect.top }
-    : { left: targetRect.left - sortableRect.left, right: targetRect.right - sortableRect.left }
-
-  // Check if item is fully in view when drag starts
-  if (isVertical.value) {
-    initialItemWasFullyInView =
-      initialTargetPosition.top >= 0 &&
-      initialTargetPosition.bottom <= sortableViewSize.value;
-  } else {
-    initialItemWasFullyInView =
-      initialTargetPosition.left >= 0 &&
-      initialTargetPosition.right <= sortableViewSize.value;
-  }
+  wasTargetFullyInView =
+    targetBounds[boundsStartKey.value] >= 0 &&
+    targetBounds[boundsEndKey.value] <= sortableViewSize.value
 }
 
 function onDrag(event) {
@@ -289,7 +276,7 @@ function onDrag(event) {
   previousDragPosition = currentDragPosition || initialDragPosition
   currentDragPosition = getEventPosition(event)
 
-  moveDirection.value = getDragDirection()
+  dragDirection.value = getDragDirection()
 
   if (!isDragging.value) {
     const dragDelta = getDragDelta()
@@ -329,7 +316,6 @@ function onDragStop() {
   isTouchEvent = false
   previousDragPosition = null
   currentDragPosition = null
-  initialTargetPosition = null
 
   if (!isDragging.value) {
     return
@@ -348,7 +334,7 @@ function onDragStop() {
   initialIndex.value = null
   currentIndex.value = null
   isDragging.value = false
-  moveDirection.value = null
+  dragDirection.value = null
 }
 
 function onItemClick(event) {
@@ -365,20 +351,13 @@ function moveTarget() {
   const scroll = sortableRef.value[scrollKey.value]
   const coordinate = position.value[positionKey.value]
 
-  // Calculate appropriate clamping boundaries based on whether the item
-  // was fully in the viewport when the drag started
-  let minCoordinate, maxCoordinate;
+  const minCoordinate = wasTargetFullyInView
+    ? scroll
+    : 0
 
-  if (initialItemWasFullyInView) {
-    // For items that were fully in view, clamp to visible area
-    minCoordinate = scroll
-    maxCoordinate = sortableViewSize.value + scroll - targetSize
-  } else {
-    // For items that were partially or fully outside the viewport,
-    // allow movement throughout the entire scrollable area
-    minCoordinate = 0
-    maxCoordinate = sortableScrollSize.value - targetSize
-  }
+  const maxCoordinate = wasTargetFullyInView
+    ? sortableViewSize.value + scroll - targetSize
+    : sortableScrollSize.value - targetSize
 
   const clampedCoordinate = clamp(coordinate - targetDragOffset.value, minCoordinate, maxCoordinate)
 
@@ -438,7 +417,7 @@ function autoScroll() {
   }
 
   // Don't auto-scroll if the user is dragging in the opposite direction of the scroll.
-  if (moveDirection.value != direction) {
+  if (dragDirection.value != direction) {
     return
   }
 
