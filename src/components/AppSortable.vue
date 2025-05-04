@@ -136,6 +136,10 @@ const moveDirection = ref(null)
 let target = null
 let autoScrollAnimationRequest = null
 
+// Used to track if the initial position of the dragged item was fully in view
+let initialItemWasFullyInView = true
+let initialTargetPosition = null
+
 let startedDragAt = null
 let isTouchEvent = false
 
@@ -246,6 +250,25 @@ function onDragStart(event, index) {
   previousDragPosition = initialDragPosition
 
   targetDragOffset.value = getRelativeEventPosition(event, target)[positionKey.value]
+
+  // Calculate the position of the target relative to the scroll container
+  const targetRect = target.getBoundingClientRect()
+  const sortableRect = sortableRef.value.getBoundingClientRect()
+
+  initialTargetPosition = isVertical.value
+    ? { top: targetRect.top - sortableRect.top, bottom: targetRect.bottom - sortableRect.top }
+    : { left: targetRect.left - sortableRect.left, right: targetRect.right - sortableRect.left }
+
+  // Check if item is fully in view when drag starts
+  if (isVertical.value) {
+    initialItemWasFullyInView =
+      initialTargetPosition.top >= 0 &&
+      initialTargetPosition.bottom <= sortableViewSize.value;
+  } else {
+    initialItemWasFullyInView =
+      initialTargetPosition.left >= 0 &&
+      initialTargetPosition.right <= sortableViewSize.value;
+  }
 }
 
 function onDrag(event) {
@@ -267,7 +290,6 @@ function onDrag(event) {
   currentDragPosition = getEventPosition(event)
 
   moveDirection.value = getDragDirection()
-  console.log('moveDirection.', moveDirection.value)
 
   if (!isDragging.value) {
     const dragDelta = getDragDelta()
@@ -307,6 +329,7 @@ function onDragStop() {
   isTouchEvent = false
   previousDragPosition = null
   currentDragPosition = null
+  initialTargetPosition = null
 
   if (!isDragging.value) {
     return
@@ -342,8 +365,21 @@ function moveTarget() {
   const scroll = sortableRef.value[scrollKey.value]
   const coordinate = position.value[positionKey.value]
 
-  const minCoordinate = scroll
-  const maxCoordinate = sortableViewSize.value + scroll - targetSize
+  // Calculate appropriate clamping boundaries based on whether the item
+  // was fully in the viewport when the drag started
+  let minCoordinate, maxCoordinate;
+
+  if (initialItemWasFullyInView) {
+    // For items that were fully in view, clamp to visible area
+    minCoordinate = scroll
+    maxCoordinate = sortableViewSize.value + scroll - targetSize
+  } else {
+    // For items that were partially or fully outside the viewport,
+    // allow movement throughout the entire scrollable area
+    minCoordinate = 0
+    maxCoordinate = sortableScrollSize.value - targetSize
+  }
+
   const clampedCoordinate = clamp(coordinate - targetDragOffset.value, minCoordinate, maxCoordinate)
 
   currentIndex.value = Math.floor(coordinate / targetSize)
@@ -408,11 +444,11 @@ function autoScroll() {
 
   const acceleration = clamp(delta, 0, props.autoScrollMargin) / props.autoScrollMargin
 
+  // Attempt to scroll by the calculated amount
   sortableRef.value[scrollKey.value] += direction * acceleration * props.autoScrollSpeed
+
   // The browser may limit actual scrolling due to boundaries or other constraints
   // So we measure the actual scroll amount that occurred rather than assuming our requested change was applied exactly
-
-  // Only update the position with the actual scroll delta, since it might be slightly different.
   const scrollDelta = direction * Math.abs(initialScroll - sortableRef.value[scrollKey.value])
 
   const minCoordinate = sortableRef.value[scrollKey.value]
